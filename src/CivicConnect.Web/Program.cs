@@ -1,4 +1,5 @@
 using CivicConnect.Web.Application.Interfaces;
+using CivicConnect.Web.Infrastructure.Repositories;
 using CivicConnect.Web.Data;
 using CivicConnect.Web.Domain.Entities;
 using Microsoft.AspNetCore.Identity;
@@ -35,6 +36,8 @@ builder.Services.AddControllersWithViews();
 builder.Services.AddRazorPages();
 
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+builder.Services.AddScoped<IRequestRepository, RequestRepository>();
+builder.Services.AddScoped<IAuditWriter, AuditWriter>();
 
 var app = builder.Build();
 
