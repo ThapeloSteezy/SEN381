@@ -1,0 +1,36 @@
+@model IReadOnlyList<ServiceRequest>
+@{
+    ViewData["Title"] = "Requests";
+}
+<div class="page-header">
+    <div>
+        <p class="eyebrow">Controlled request lifecycle</p>
+        <h1>Requests</h1>
+    </div>
+    <a class="button" asp-action="Create">Submit request</a>
+</div>
+@if (!Model.Any())
+{
+    <div class="card"><p>No requests are available for your current role.</p></div>
+}
+else
+{
+    <div class="table-wrap card">
+        <table>
+            <thead><tr><th>Request</th><th>Category</th><th>Status</th><th>Priority</th><th>Created</th><th></th></tr></thead>
+            <tbody>
+            @foreach (var request in Model)
+            {
+                <tr>
+                    <td><strong>@request.RequestNumber</strong><br />@request.Title</td>
+                    <td>@request.Category?.Name</td>
+                    <td><span class="status">@request.Status</span></td>
+                    <td>@request.Priority</td>
+                    <td>@request.CreatedAtUtc.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</td>
+                    <td><a asp-action="Details" asp-route-id="@request.Id">Open</a></td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+}
