@@ -1,0 +1,30 @@
+@model CivicConnect.Web.Controllers.CreateRequestViewModel
+@{
+    ViewData["Title"] = "Submit Request";
+    var categories = (IEnumerable<RequestCategory>)ViewBag.Categories;
+}
+<h1>Submit a service request</h1>
+<form asp-action="Create" method="post" class="card form-card">
+    <div asp-validation-summary="ModelOnly" class="validation"></div>
+    <label asp-for="Title"></label>
+    <input asp-for="Title" />
+    <span asp-validation-for="Title" class="validation"></span>
+
+    <label asp-for="Description"></label>
+    <textarea asp-for="Description" rows="7"></textarea>
+    <span asp-validation-for="Description" class="validation"></span>
+
+    <label asp-for="CategoryId">Category</label>
+    <select asp-for="CategoryId">
+        <option value="">Select a category</option>
+        @foreach (var category in categories)
+        {
+            <option value="@category.Id">@category.Name</option>
+        }
+    </select>
+
+    <label asp-for="Priority"></label>
+    <select asp-for="Priority" asp-items="Html.GetEnumSelectList<RequestPriority>()"></select>
+
+    <button class="button" type="submit">Submit request</button>
+</form>
