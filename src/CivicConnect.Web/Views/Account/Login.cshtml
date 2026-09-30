@@ -1,0 +1,20 @@
+@model CivicConnect.Web.Controllers.LoginViewModel
+@{
+    ViewData["Title"] = "Login";
+}
+<h1>Login</h1>
+<form asp-action="Login" method="post" class="card form-card">
+    <input type="hidden" asp-for="ReturnUrl" />
+    <div asp-validation-summary="ModelOnly" class="validation"></div>
+    <label asp-for="Email"></label>
+    <input asp-for="Email" autocomplete="username" />
+    <span asp-validation-for="Email" class="validation"></span>
+
+    <label asp-for="Password"></label>
+    <input asp-for="Password" autocomplete="current-password" />
+    <span asp-validation-for="Password" class="validation"></span>
+
+    <label class="checkbox"><input asp-for="RememberMe" /> Remember me</label>
+    <button class="button" type="submit">Login</button>
+</form>
+<p class="muted">M2 local demo accounts are documented in the README. Do not reuse demo passwords outside local development.</p>

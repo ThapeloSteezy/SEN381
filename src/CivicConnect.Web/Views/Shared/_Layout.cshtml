@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - CivicConnect</title>
+    <link rel="stylesheet" href="~/css/site.css" />
+</head>
+<body>
+<header class="topbar">
+    <a class="brand" asp-controller="Home" asp-action="Index">CivicConnect</a>
+    <nav>
+        <a asp-controller="Requests" asp-action="Index">Requests</a>
+        @if (User.Identity?.IsAuthenticated == true)
+        {
+            <a asp-controller="Requests" asp-action="Create">Submit Request</a>
+            <form asp-controller="Account" asp-action="Logout" method="post" class="inline-form">
+                <button type="submit" class="link-button">Logout (@User.Identity.Name)</button>
+            </form>
+        }
+        else
+        {
+            <a asp-controller="Account" asp-action="Login">Login</a>
+        }
+    </nav>
+</header>
+<main class="container">
+    @if (TempData["Error"] is string error)
+    {
+        <div class="alert error">@error</div>
+    }
+    @if (TempData["Success"] is string success)
+    {
+        <div class="alert success">@success</div>
+    }
+    @RenderBody()
+</main>
+<footer class="footer">SEN381 CivicConnect — M2 initial development baseline</footer>
+</body>
+</html>
