@@ -42,8 +42,13 @@ dotnet test
 ```
 
 - `RequestServiceTests` and `StatusTransitionPolicyTests` are unit tests of the business rules with in-memory fakes.
+- `BlackBox/` is a decision table of who may assign, start, fix or close a request, plus boundary-value tests of the 8-character password rule.
 - `Integration/` runs the whole app (controllers, sign-in, views and the MongoDB stores) against a throwaway MongoDB 8 server started by [EphemeralMongo](https://github.com/asimmon/ephemeral-mongo). Each test gets its own empty database, so nothing touches Atlas. The first run downloads MongoDB, which takes a minute or two.
-- Tests are tagged with the requirement they check, e.g. `dotnet test --filter Requirement=FR-07` or `--filter Category=Integration`.
+- `EndToEnd/` drives Chromium (Playwright) through the report → assign → fix → close journey. Install the browser once after a build: `powershell -File tests/CivicConnect.Web.Tests/bin/Release/net10.0/playwright.ps1 install chromium`
+- `Performance/` loads 500 requests and times the supervisor "All requests" search for 10 concurrent users. The numbers are student-scale; they do not represent a municipal production load.
+- Tests are tagged with the requirement they check, e.g. `dotnet test --filter Requirement=FR-07` or `--filter Category=E2E`.
+
+`GET /health` returns `{ status, version, environment }` and is used to confirm which build is running. The same version string is in the page footer. Point a staging run at a separate Atlas database and set `APP_VERSION` (or rely on `GITHUB_SHA`) so the footer matches the tagged commit.
 
 ## CI
 
