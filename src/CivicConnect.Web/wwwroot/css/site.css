@@ -73,8 +73,7 @@ a:hover { color: var(--accent-dark); }
 .topbar a.signin-link { color: #fff; }
 
 /* Page frame */
-.container { max-width: 1160px; margin: 0 auto; padding: 28px 20px 32px; }
-.site-foot { max-width: 1160px; margin: 0 auto; padding: 0 20px 24px; display: flex; gap: 14px; font-size: .75rem; color: var(--muted); }
+.container { max-width: 1160px; margin: 0 auto; padding: 28px 20px 64px; }
 .page-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 20px; flex-wrap: wrap; }
 .page-head p { margin: 4px 0 0; }
 .page-actions { display: flex; gap: 10px; align-items: center; }

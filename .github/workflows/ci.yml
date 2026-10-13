@@ -27,11 +27,7 @@ jobs:
       - name: Build with static analysis
         run: dotnet build CivicConnect.slnx --configuration Release --no-restore -p:ContinuousIntegrationBuild=true
 
-      - name: Install Playwright Chromium
-        run: pwsh tests/CivicConnect.Web.Tests/bin/Release/net10.0/playwright.ps1 install chromium --with-deps
-
-      # Unit tests use in-memory fakes; integration tests start the app against a throwaway MongoDB 8 server;
-      # E2E tests drive Chromium against Kestrel.
+      # Unit tests use in-memory fakes; integration tests start the app against a throwaway MongoDB 8 server.
       - name: Test
         run: >
           dotnet test CivicConnect.slnx --configuration Release --no-build

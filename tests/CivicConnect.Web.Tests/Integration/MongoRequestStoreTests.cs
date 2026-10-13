@@ -1,7 +1,7 @@
-using CivicConnect.Web.Application;
 using CivicConnect.Web.Data;
 using CivicConnect.Web.Domain.Entities;
 using CivicConnect.Web.Domain.Enums;
+using MongoDB.Driver;
 
 namespace CivicConnect.Web.Tests.Integration;
 
@@ -36,7 +36,9 @@ public sealed class MongoRequestStoreTests(MongoServer server) : IntegrationTest
     {
         await Store.InsertAsync(NewRequest("CC-TEST-0002"));
 
-        await Assert.ThrowsAsync<DuplicateRequestNumberException>(() => Store.InsertAsync(NewRequest("CC-TEST-0002")));
+        var duplicate = await Assert.ThrowsAsync<MongoWriteException>(() => Store.InsertAsync(NewRequest("CC-TEST-0002")));
+
+        Assert.Equal(ServerErrorCategory.DuplicateKey, duplicate.WriteError.Category);
     }
 
     [Fact]

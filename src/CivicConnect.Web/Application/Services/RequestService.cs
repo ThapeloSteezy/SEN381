@@ -1,5 +1,4 @@
 using CivicConnect.Web.Application.Interfaces;
-using CivicConnect.Web.Application;
 using CivicConnect.Web.Domain;
 using CivicConnect.Web.Domain.Entities;
 using CivicConnect.Web.Domain.Enums;
@@ -73,6 +72,7 @@ public sealed class RequestService : IRequestService
         var request = new ServiceRequest
         {
             Id = Guid.NewGuid(),
+            RequestNumber = $"CC-{now:yyyyMMdd}-{Random.Shared.Next(1000, 9999)}",
             Title = title.Trim(),
             Description = description.Trim(),
             CategoryId = category.Id,
@@ -93,24 +93,8 @@ public sealed class RequestService : IRequestService
             PerformedAtUtc = now
         });
 
-        const int attempts = 8;
-        for (var attempt = 1; attempt <= attempts; attempt++)
-        {
-            request.RequestNumber = $"CC-{now:yyyyMMdd}-{Random.Shared.Next(1000, 10000)}";
-            try
-            {
-                await _store.InsertAsync(request, cancellationToken);
-                return request;
-            }
-            catch (DuplicateRequestNumberException)
-            {
-                if (attempt == attempts)
-                    throw new InvalidOperationException("Could not save the request. Please try again.");
-                request.Id = Guid.NewGuid();
-            }
-        }
-
-        throw new InvalidOperationException("Could not save the request. Please try again.");
+        await _store.InsertAsync(request, cancellationToken);
+        return request;
     }
 
     public async Task<(bool Success, string? Error)> AssignAsync(

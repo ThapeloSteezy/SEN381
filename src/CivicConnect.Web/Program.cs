@@ -1,15 +1,11 @@
-using CivicConnect.Web;
 using CivicConnect.Web.Application.Interfaces;
 using CivicConnect.Web.Application.Services;
 using CivicConnect.Web.Data;
 using Microsoft.AspNetCore.Authentication.Cookies;
-using MongoDB.Bson;
-using MongoDB.Driver;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddSingleton<MongoContext>();
-builder.Services.AddSingleton<DatabaseStatus>();
 builder.Services.AddScoped<IRequestStore, MongoRequestStore>();
 builder.Services.AddScoped<MongoUserDirectory>();
 builder.Services.AddScoped<IUserDirectory>(services => services.GetRequiredService<MongoUserDirectory>());
@@ -29,9 +25,8 @@ builder.Services.AddAuthorization();
 builder.Services.AddControllersWithViews();
 
 var app = builder.Build();
-AppInfo.EnvironmentName = app.Environment.EnvironmentName;
 
-if (app.Environment.IsProduction())
+if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
     app.UseHsts();
@@ -40,38 +35,9 @@ if (app.Environment.IsProduction())
 
 app.UseStatusCodePagesWithReExecute("/Home/Error", "?code={0}");
 app.UseStaticFiles();
-app.Use(DatabaseGuard.InvokeAsync);
 app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
-
-app.MapGet("/health", async (MongoContext mongo, DatabaseStatus database, CancellationToken cancellationToken) =>
-{
-    var body = new Dictionary<string, string?>
-    {
-        ["status"] = database.Ready ? "ok" : "unavailable",
-        ["version"] = AppInfo.Version,
-        ["environment"] = AppInfo.EnvironmentName
-    };
-
-    if (!database.Ready)
-    {
-        body["error"] = database.Error;
-        return Results.Json(body, statusCode: StatusCodes.Status503ServiceUnavailable);
-    }
-
-    try
-    {
-        await mongo.Database.RunCommandAsync<BsonDocument>(new BsonDocument("ping", 1), cancellationToken: cancellationToken);
-        return Results.Json(body);
-    }
-    catch (MongoException)
-    {
-        body["status"] = "unavailable";
-        body["error"] = "The database did not respond.";
-        return Results.Json(body, statusCode: StatusCodes.Status503ServiceUnavailable);
-    }
-});
 
 app.MapControllerRoute(
     name: "default",
@@ -82,18 +48,7 @@ using (var scope = app.Services.CreateScope())
     if (args is ["import-accounts", var accountsFile, ..])
         return await AccountImport.RunAsync(scope.ServiceProvider, accountsFile, Console.Out);
 
-    var database = scope.ServiceProvider.GetRequiredService<DatabaseStatus>();
-    try
-    {
-        await DatabaseSetup.RunAsync(scope.ServiceProvider);
-        database.Ready = true;
-    }
-    catch (Exception ex)
-    {
-        database.Ready = false;
-        database.Error = "CivicConnect could not reach the database. Check the connection string and that MongoDB is available.";
-        Console.Error.WriteLine($"Database setup failed: {ex}");
-    }
+    await DatabaseSetup.RunAsync(scope.ServiceProvider);
 }
 
 app.Run();

@@ -1,4 +1,3 @@
-using CivicConnect.Web.Application;
 using CivicConnect.Web.Application.Interfaces;
 using CivicConnect.Web.Domain.Entities;
 using MongoDB.Driver;
@@ -40,17 +39,8 @@ public sealed class MongoRequestStore : IRequestStore
     public Task<RequestCategory?> GetCategoryByIdAsync(int id, CancellationToken cancellationToken = default)
         => _mongo.Categories.Find(category => category.Id == id).FirstOrDefaultAsync(cancellationToken)!;
 
-    public async Task InsertAsync(ServiceRequest request, CancellationToken cancellationToken = default)
-    {
-        try
-        {
-            await _mongo.Requests.InsertOneAsync(request, cancellationToken: cancellationToken);
-        }
-        catch (MongoWriteException ex) when (ex.WriteError.Category == ServerErrorCategory.DuplicateKey)
-        {
-            throw new DuplicateRequestNumberException();
-        }
-    }
+    public Task InsertAsync(ServiceRequest request, CancellationToken cancellationToken = default)
+        => _mongo.Requests.InsertOneAsync(request, cancellationToken: cancellationToken);
 
     public async Task<bool> TryUpdateAsync(ServiceRequest request, long previousVersion, CancellationToken cancellationToken = default)
     {
@@ -94,11 +84,9 @@ public sealed class MongoRequestStore : IRequestStore
     {
         foreach (var category in categories)
         {
-            await _mongo.Categories.ReplaceOneAsync(
-                current => current.Id == category.Id,
-                category,
-                new ReplaceOptions { IsUpsert = true },
-                cancellationToken);
+            var exists = await _mongo.Categories.Find(current => current.Name == category.Name).AnyAsync(cancellationToken);
+            if (!exists)
+                await _mongo.Categories.InsertOneAsync(category, cancellationToken: cancellationToken);
         }
     }
 }
