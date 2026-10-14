@@ -1,0 +1,11 @@
+[
+  { "name": "Lerato Dlamini",  "email": "lerato.dlamini@riverside.org.za",  "role": "Supervisor", "password": "" },
+
+  { "name": "Bongani Zulu",    "email": "bongani.zulu@riverside.org.za",    "role": "Staff",      "password": "" },
+  { "name": "Thandi Khumalo",  "email": "thandi.khumalo@riverside.org.za",  "role": "Staff",      "password": "" },
+  { "name": "Johan Botha",     "email": "johan.botha@riverside.org.za",     "role": "Staff",      "password": "" },
+
+  { "name": "Naledi Mokoena",  "email": "naledi.mokoena@riverside.org.za",  "role": "Requester",  "password": "" },
+  { "name": "Sipho Ndlovu",    "email": "sipho.ndlovu@riverside.org.za",    "role": "Requester",  "password": "" },
+  { "name": "Kagiso Molefe",   "email": "kagiso.molefe@riverside.org.za",   "role": "Requester",  "password": "" }
+]

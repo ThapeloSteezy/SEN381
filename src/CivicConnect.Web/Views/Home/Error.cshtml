@@ -1,5 +1,9 @@
 @{
-    ViewData["Title"] = "Error";
+    var notFound = ViewBag.Code as int? == 404;
+    ViewData["Title"] = notFound ? "Page not found" : "Something went wrong";
 }
-<h1>Something went wrong</h1>
-<p>Please try again. If the problem continues, contact the CivicConnect team.</p>
+<div class="panel empty">
+    <h1>@ViewData["Title"]</h1>
+    <p>@(notFound ? "This page does not exist." : "Please try again.")</p>
+    <a class="button" asp-controller="Home" asp-action="Index">Go to home</a>
+</div>

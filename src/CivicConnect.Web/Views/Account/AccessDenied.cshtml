@@ -1,5 +1,8 @@
 @{
-    ViewData["Title"] = "Access denied";
+    ViewData["Title"] = "Not for you";
 }
-<h1>Access denied</h1>
-<p>Your account does not have permission to view this page.</p>
+<div class="panel empty">
+    <h1>This page is for supervisors</h1>
+    <p>You can report problems and see your own requests.</p>
+    <a class="button huge" asp-controller="Requests" asp-action="Index">Go to my requests</a>
+</div>

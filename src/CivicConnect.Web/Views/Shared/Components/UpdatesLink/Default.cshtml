@@ -1,0 +1,12 @@
+@model long
+<a class="bell" asp-controller="Requests" asp-action="Updates"
+   aria-current="@(ViewData["Current"] is true ? "page" : null)"
+   aria-label="@(Model > 0 ? $"Updates, {Model} new" : "Updates")" title="Updates">
+    <svg class="icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" /><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
+    </svg>
+    @if (Model > 0)
+    {
+        <span class="badge" aria-hidden="true">@(Model > 9 ? "9+" : Model.ToString())</span>
+    }
+</a>

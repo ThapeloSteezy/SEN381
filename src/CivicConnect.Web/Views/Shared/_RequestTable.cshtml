@@ -1,0 +1,40 @@
+@model IEnumerable<ServiceRequest>
+@{
+    var caption = ViewData["Caption"] as string;
+}
+<div class="table-wrap">
+    <table class="requests">
+        @if (caption is not null)
+        {
+            <caption class="visually-hidden">@caption</caption>
+        }
+        <thead>
+        <tr>
+            <th scope="col">Request</th>
+            <th scope="col">Room</th>
+            <th scope="col">Type</th>
+            <th scope="col">Priority</th>
+            <th scope="col">Assigned to</th>
+            <th scope="col">Status</th>
+            <th scope="col">Updated</th>
+        </tr>
+        </thead>
+        <tbody>
+        @foreach (var request in Model)
+        {
+            <tr>
+                <td class="title">
+                    <a asp-controller="Requests" asp-action="Details" asp-route-id="@request.Id">@request.Title</a>
+                    <div class="ref">@request.RequestNumber</div>
+                </td>
+                <td>@FacilityPlan.NameOf(request.RoomId)</td>
+                <td>@request.Category?.Name</td>
+                <td><span class="priority priority-@request.Priority.ToString().ToLowerInvariant()">@request.Priority</span></td>
+                <td class="who">@if (request.AssignedTo is null) {<span class="muted">Nobody yet</span>} else {@request.AssignedTo.Label}</td>
+                <td><partial name="_Status" model="request.Status" /></td>
+                <td class="when"><time datetime="@request.UpdatedAtUtc.ToString("O")">@request.UpdatedAtUtc.ToLocalTime().ToString("d MMM HH:mm")</time></td>
+            </tr>
+        }
+        </tbody>
+    </table>
+</div>

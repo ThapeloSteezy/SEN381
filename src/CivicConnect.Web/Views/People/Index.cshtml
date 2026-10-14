@@ -1,0 +1,84 @@
+@model CivicConnect.Web.Controllers.PeopleViewModel
+@{
+    ViewData["Title"] = "People";
+    ViewData["Nav"] = "people";
+    var currentUserId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+    string[] roles = [UserRoles.Supervisor, UserRoles.Staff, UserRoles.Requester];
+}
+<div class="page-head">
+    <h1>People</h1>
+</div>
+
+<div class="split">
+    <div>
+        @foreach (var role in roles)
+        {
+            var group = Model.People.Where(p => p.Role == role).ToList();
+            <section class="section">
+                <h2 class="section-title">@(role == UserRoles.Staff ? "Staff" : role + "s") (@group.Count)</h2>
+                @if (group.Count == 0)
+                {
+                    <p class="muted">Nobody yet.</p>
+                }
+                else
+                {
+                    <div class="panel">
+                        <table class="requests people">
+                            <thead>
+                            <tr><th scope="col">Name</th><th scope="col">Email</th><th scope="col">New password</th></tr>
+                            </thead>
+                            <tbody>
+                            @foreach (var person in group)
+                            {
+                                <tr>
+                                    <td class="title">@person.DisplayName@if (person.Id == currentUserId) {<span class="muted"> (you)</span>}</td>
+                                    <td>@person.Email</td>
+                                    <td>
+                                        <form asp-action="ResetPassword" method="post" class="inline-form">
+                                            <input type="hidden" name="id" value="@person.Id" />
+                                            <label for="pw-@person.Id" class="visually-hidden">New password for @person.DisplayName</label>
+                                            <input type="password" id="pw-@person.Id" name="password" minlength="8" autocomplete="new-password" placeholder="At least 8 characters" />
+                                            <button class="button quiet" type="submit">Set</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </section>
+        }
+    </div>
+
+    <aside class="panel">
+        <div class="panel-head"><h2>Add a person</h2></div>
+        <form asp-action="Add" method="post" class="panel-body form" novalidate>
+            <div class="field">
+                <label asp-for="NewPerson.Name">Name</label>
+                <input asp-for="NewPerson.Name" autocomplete="off" />
+                <span asp-validation-for="NewPerson.Name"></span>
+            </div>
+            <div class="field">
+                <label asp-for="NewPerson.Email">Email</label>
+                <input asp-for="NewPerson.Email" type="email" autocomplete="off" />
+                <span asp-validation-for="NewPerson.Email"></span>
+            </div>
+            <div class="field">
+                <label asp-for="NewPerson.Role">Role</label>
+                <select asp-for="NewPerson.Role">
+                    <option value="@UserRoles.Requester">Requester (reports problems)</option>
+                    <option value="@UserRoles.Staff">Staff (fixes jobs)</option>
+                    <option value="@UserRoles.Supervisor">Supervisor (assigns and closes)</option>
+                </select>
+                <span asp-validation-for="NewPerson.Role"></span>
+            </div>
+            <div class="field">
+                <label asp-for="NewPerson.Password">Password</label>
+                <input asp-for="NewPerson.Password" type="password" autocomplete="new-password" />
+                <span asp-validation-for="NewPerson.Password"></span>
+            </div>
+            <button class="button large" type="submit">Add person</button>
+        </form>
+    </aside>
+</div>
