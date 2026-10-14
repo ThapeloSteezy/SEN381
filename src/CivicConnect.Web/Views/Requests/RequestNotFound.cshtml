@@ -1,9 +1,0 @@
-@{
-    ViewData["Title"] = "Request not found";
-    ViewData["Nav"] = "requests";
-}
-<div class="panel empty">
-    <h1>We can't find that request</h1>
-    <p>It does not exist, or it is not yours.</p>
-    <a class="button huge" asp-action="Index">@(User.IsSupervisor() ? "Go to all requests" : User.IsStaff() ? "Go to my jobs" : "Go to my requests")</a>
-</div>

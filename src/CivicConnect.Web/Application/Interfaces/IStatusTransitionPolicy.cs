@@ -4,5 +4,5 @@ namespace CivicConnect.Web.Application.Interfaces;
 
 public interface IStatusTransitionPolicy
 {
-    bool IsAllowed(RequestStatus current, RequestStatus requested);
+    bool IsAllowed(RequestStatus from, RequestStatus to);
 }

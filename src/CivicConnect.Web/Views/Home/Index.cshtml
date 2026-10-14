@@ -1,91 +1,14 @@
-@model IReadOnlyList<ServiceRequest>
 @{
     ViewData["Title"] = "Home";
-    var signedIn = User.Identity?.IsAuthenticated == true;
-    var supervisor = User.IsSupervisor();
-    var staff = User.IsStaff();
-    var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-    var open = Model.Where(r => r.Status.IsOpen()).OrderByDescending(r => r.CreatedAtUtc).ToList();
-    var myJobs = open.Where(r => r.AssignedToId == userId).OrderByDescending(r => r.Priority).ThenBy(r => r.CreatedAtUtc).ToList();
 }
-@if (!signedIn)
-{
-    <div class="hello">
-        <h1>Something broken or lost?</h1>
-        <p>Tell us and we will fix it.</p>
-        <a class="button huge" asp-controller="Account" asp-action="Login">Sign in</a>
+<div class="hero">
+    <p class="eyebrow">SEN381 • Milestone 2</p>
+    <h1>Community service requests, managed as one controlled lifecycle.</h1>
+    <p>
+        Sign in with your role to work with community service requests.
+    </p>
+    <div class="actions">
+        <a class="button" asp-controller="Requests" asp-action="Index">View requests</a>
+        <a class="button secondary" asp-controller="Requests" asp-action="Create">Submit a request</a>
     </div>
-}
-else
-{
-    <div class="hello">
-        <h1>Hi @User.FirstName()</h1>
-    </div>
-
-    <div class="big-actions">
-        <a class="big-action primary" asp-controller="Requests" asp-action="Create">
-            <partial name="_Icon" model='"plus"' />
-            <span>Report a problem</span>
-        </a>
-        <a class="big-action" asp-controller="Requests" asp-action="Index">
-            <partial name="_Icon" model='"list"' />
-            <span>@(supervisor ? "All requests" : staff ? "My jobs" : "My requests")</span>
-            @if ((staff ? myJobs.Count : open.Count) is var count && count > 0)
-            {
-                <span class="count">@count open</span>
-            }
-        </a>
-        @if (supervisor)
-        {
-            <a class="big-action" asp-controller="Requests" asp-action="Map">
-                <partial name="_Icon" model='"map"' />
-                <span>Map</span>
-            </a>
-        }
-    </div>
-
-    @if (supervisor)
-    {
-        var waiting = open.Where(r => r.Status == RequestStatus.New).ToList();
-        var toClose = Model.Where(r => r.Status == RequestStatus.Resolved).ToList();
-        <section class="section">
-            <h2 class="section-title">New, needs someone (@waiting.Count)</h2>
-            @if (waiting.Count == 0)
-            {
-                <p class="muted big-text">Nothing new right now.</p>
-            }
-            else
-            {
-                <partial name="_RequestCards" model="waiting" />
-            }
-        </section>
-        @if (toClose.Count > 0)
-        {
-            <section class="section">
-                <h2 class="section-title">Fixed, ready to close (@toClose.Count)</h2>
-                <partial name="_RequestCards" model="toClose" />
-            </section>
-        }
-    }
-    else if (staff)
-    {
-        <section class="section">
-            <h2 class="section-title">Your jobs (@myJobs.Count)</h2>
-            @if (myJobs.Count == 0)
-            {
-                <p class="muted big-text">No jobs for you right now.</p>
-            }
-            else
-            {
-                <partial name="_RequestCards" model="myJobs" />
-            }
-        </section>
-    }
-    else if (open.Count > 0)
-    {
-        <section class="section">
-            <h2 class="section-title">Your open requests</h2>
-            <partial name="_RequestCards" model="open" />
-        </section>
-    }
-}
+</div>

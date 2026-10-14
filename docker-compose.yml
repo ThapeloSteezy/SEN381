@@ -1,0 +1,16 @@
+services:
+  postgres:
+    image: postgres:18-alpine
+    container_name: civicconnect-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: civicconnect
+      POSTGRES_USER: civicconnect
+      POSTGRES_PASSWORD: ${CIVICCONNECT_DB_PASSWORD:?Set CIVICCONNECT_DB_PASSWORD in your local environment}
+    ports:
+      - "127.0.0.1:55432:5432"
+    volumes:
+      - civicconnect_pgdata:/var/lib/postgresql
+
+volumes:
+  civicconnect_pgdata:

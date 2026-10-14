@@ -1,14 +1,8 @@
-using MongoDB.Bson.Serialization.Attributes;
+using Microsoft.AspNetCore.Identity;
 
 namespace CivicConnect.Web.Domain.Entities;
 
-public class ApplicationUser
+public class ApplicationUser : IdentityUser
 {
-    [BsonId]
-    public string Id { get; set; } = Guid.NewGuid().ToString("N");
-
-    public string Email { get; set; } = string.Empty;
     public string DisplayName { get; set; } = string.Empty;
-    public string PasswordHash { get; set; } = string.Empty;
-    public string Role { get; set; } = string.Empty;
 }

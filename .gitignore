@@ -23,6 +23,3 @@ coverage/
 ## OS
 .DS_Store
 Thumbs.db
-
-## Real account list (contains passwords)
-accounts.json
