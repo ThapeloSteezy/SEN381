@@ -1,30 +1,81 @@
 @model CivicConnect.Web.Controllers.CreateRequestViewModel
 @{
-    ViewData["Title"] = "Submit Request";
+    ViewData["Title"] = "Report a problem";
+    ViewData["Nav"] = "create";
     var categories = (IEnumerable<RequestCategory>)ViewBag.Categories;
+    var rooms = FacilityPlan.Rooms.OrderBy(r => r.Name);
+    var priorities = new (RequestPriority Value, string Text)[]
+    {
+        (RequestPriority.Low, "It can wait"),
+        (RequestPriority.Medium, "Fix this week"),
+        (RequestPriority.High, "Fix today"),
+        (RequestPriority.Urgent, "Not safe")
+    };
+    bool HasError(string key) => ViewData.ModelState[key]?.Errors.Count > 0;
 }
-<h1>Submit a service request</h1>
-<form asp-action="Create" method="post" class="card form-card">
-    <div asp-validation-summary="ModelOnly" class="validation"></div>
-    <label asp-for="Title"></label>
-    <input asp-for="Title" />
-    <span asp-validation-for="Title" class="validation"></span>
+<div class="form-narrow">
+    <h1 class="page-title">Report a problem</h1>
 
-    <label asp-for="Description"></label>
-    <textarea asp-for="Description" rows="7"></textarea>
-    <span asp-validation-for="Description" class="validation"></span>
+    @if (!ViewData.ModelState.IsValid)
+    {
+        <div class="notice error" role="alert">
+            <p>Please fill in the parts marked in red.</p>
+            <div asp-validation-summary="ModelOnly"></div>
+        </div>
+    }
 
-    <label asp-for="CategoryId">Category</label>
-    <select asp-for="CategoryId">
-        <option value="">Select a category</option>
-        @foreach (var category in categories)
-        {
-            <option value="@category.Id">@category.Name</option>
-        }
-    </select>
+    <form asp-action="Create" method="post" class="steps-form" novalidate>
+        <fieldset class="step @(HasError("CategoryId") ? "has-error" : null)">
+            <legend><span class="step-no">1</span> What is the problem?</legend>
+            <div class="tiles tiles-3">
+                @foreach (var category in categories)
+                {
+                    <label class="tile">
+                        <input type="radio" asp-for="CategoryId" value="@category.Id" class="visually-hidden" />
+                        <partial name="_Icon" model="category.Name" />
+                        <span>@category.Name</span>
+                    </label>
+                }
+            </div>
+            <span asp-validation-for="CategoryId"></span>
+        </fieldset>
 
-    <label asp-for="Priority"></label>
-    <select asp-for="Priority" asp-items="Html.GetEnumSelectList<RequestPriority>()"></select>
+        <fieldset class="step @(HasError("RoomId") ? "has-error" : null)">
+            <legend><span class="step-no">2</span> Where is it?</legend>
+            <div class="tiles tiles-4">
+                @foreach (var room in rooms)
+                {
+                    <label class="tile tile-text">
+                        <input type="radio" asp-for="RoomId" value="@room.Id" class="visually-hidden" />
+                        <span>@room.Name</span>
+                    </label>
+                }
+            </div>
+            <span asp-validation-for="RoomId"></span>
+        </fieldset>
 
-    <button class="button" type="submit">Submit request</button>
-</form>
+        <div class="step @(HasError("Description") ? "has-error" : null)">
+            <label class="step-label" asp-for="Description"><span class="step-no">3</span> What happened?</label>
+            <textarea asp-for="Description" rows="5" placeholder="For example: The tap in the kitchen will not stop dripping."></textarea>
+            <span asp-validation-for="Description"></span>
+        </div>
+
+        <fieldset class="step">
+            <legend><span class="step-no">4</span> How bad is it?</legend>
+            <div class="tiles tiles-4">
+                @foreach (var (value, text) in priorities)
+                {
+                    <label class="tile tile-text priority-tile-@value.ToString().ToLowerInvariant()">
+                        <input type="radio" asp-for="Priority" value="@value" class="visually-hidden" />
+                        <span>@text</span>
+                    </label>
+                }
+            </div>
+        </fieldset>
+
+        <div class="form-actions">
+            <button class="button huge" type="submit">Send</button>
+            <a asp-action="Index">Cancel</a>
+        </div>
+    </form>
+</div>

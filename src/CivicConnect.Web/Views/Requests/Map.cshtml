@@ -1,0 +1,122 @@
+@model CivicConnect.Web.Controllers.MapViewModel
+@{
+    ViewData["Title"] = "Map";
+    ViewData["Nav"] = "map";
+    var selected = Model.SelectedRoom;
+    var withOpen = Model.Rooms.Where(r => r.OpenCount > 0).OrderByDescending(r => r.OpenCount).ThenBy(r => r.Room.Name).ToList();
+
+    string Describe(CivicConnect.Web.Controllers.MapRoomViewModel r)
+        => r.OpenCount == 0
+            ? $"{r.Room.Name}, no open requests"
+            : $"{r.Room.Name}, {r.OpenCount} open, {r.MostUrgentOpenStatus?.Label()}";
+}
+<div class="page-head">
+    <div>
+        <h1>Map</h1>
+        <p class="muted">@FacilityPlan.BuildingName, ground floor</p>
+    </div>
+    <div class="page-actions">
+        <a class="button quiet" asp-action="Index">All requests</a>
+    </div>
+</div>
+
+@if (Model.UnknownRoomRequested)
+{
+    <div class="notice error" role="alert"><p>Room not found.</p></div>
+}
+
+<div class="map-layout">
+    <figure class="panel plan-figure">
+        <svg class="plan" viewBox="0 0 @FacilityPlan.PlanWidth @FacilityPlan.PlanHeight" role="group" aria-label="Floor plan of @FacilityPlan.BuildingName">
+            @foreach (var r in Model.Rooms)
+            {
+                var room = r.Room;
+                var classes = "room"
+                    + (r.MostUrgentOpenStatus is { } s ? " has-open " + s.CssClass() : "")
+                    + (selected?.Id == room.Id ? " selected" : "");
+                var tall = room.Height >= 90;
+                var markerX = tall ? room.X + 14 : room.X + 130;
+                var markerY = tall ? room.Y + 44 : room.Y + 16;
+                <a href="@Url.Action("Map", new { room = room.Id })#room-panel" class="@classes" aria-label="@Describe(r)" aria-current="@(selected?.Id == room.Id ? "true" : null)">
+                    <rect class="area" x="@room.X" y="@room.Y" width="@room.Width" height="@room.Height" />
+                    <text class="name" x="@(room.X + 14)" y="@(room.Y + 30)">@room.Name</text>
+                    @if (r.MostUrgentOpenStatus is { } status)
+                    {
+                        <g class="marker @status.CssClass()" aria-hidden="true">
+                            <rect x="@markerX" y="@markerY" width="40" height="28" rx="14" />
+                            <text x="@(markerX + 20)" y="@(markerY + 20)">@r.OpenCount</text>
+                        </g>
+                    }
+                </a>
+            }
+            <rect class="walls" x="20" y="20" width="920" height="520" />
+            <line class="entrance" x1="110" y1="540" x2="190" y2="540" />
+            <text class="entrance-label" x="150" y="562" text-anchor="middle">Entrance</text>
+        </svg>
+        <figcaption class="legend">
+            <partial name="_Status" model="RequestStatus.New" />
+            <partial name="_Status" model="RequestStatus.Assigned" />
+            <partial name="_Status" model="RequestStatus.InProgress" />
+            <span>Tap a room to see its requests.</span>
+        </figcaption>
+    </figure>
+
+    <section class="panel" id="room-panel" aria-labelledby="room-heading" tabindex="-1">
+        @if (selected is null)
+        {
+            <div class="panel-head">
+                <h2 id="room-heading">Rooms with problems</h2>
+            </div>
+            @if (withOpen.Count == 0)
+            {
+                <div class="panel-body"><p class="muted">No problems right now.</p></div>
+            }
+            else
+            {
+                <ul class="room-index">
+                    @foreach (var r in withOpen)
+                    {
+                        <li>
+                            <a href="@Url.Action("Map", new { room = r.Room.Id })#room-panel">
+                                @r.Room.Name
+                                <span class="status @r.MostUrgentOpenStatus!.Value.CssClass()">@r.OpenCount open</span>
+                            </a>
+                        </li>
+                    }
+                </ul>
+            }
+        }
+        else
+        {
+            var summary = Model.Rooms.First(r => r.Room.Id == selected.Id);
+            <div class="panel-head">
+                <h2 id="room-heading">@selected.Name</h2>
+                <a class="small" asp-action="Map">Clear</a>
+            </div>
+            @if (Model.SelectedRequests.Count == 0)
+            {
+                <div class="panel-body">
+                    <p class="muted">No problems here.</p>
+                    <a class="small" asp-action="Create" asp-route-room="@selected.Id">Report a problem here</a>
+                </div>
+            }
+            else
+            {
+                <p class="panel-body small muted room-summary">@summary.OpenCount open, @(summary.TotalCount - summary.OpenCount) resolved or closed</p>
+                <ul class="room-requests">
+                    @foreach (var request in Model.SelectedRequests)
+                    {
+                        <li>
+                            <a asp-action="Details" asp-route-id="@request.Id">@request.Title</a>
+                            <div class="meta">
+                                <partial name="_Status" model="request.Status" />
+                                <span>@request.RequestNumber</span>
+                                <span class="priority priority-@request.Priority.ToString().ToLowerInvariant()">@request.Priority</span>
+                            </div>
+                        </li>
+                    }
+                </ul>
+            }
+        }
+    </section>
+</div>

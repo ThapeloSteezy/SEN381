@@ -1,40 +1,65 @@
+@{
+    var nav = ViewData["Nav"] as string;
+    string? Current(string key) => nav == key ? "page" : null;
+    var signedIn = User.Identity?.IsAuthenticated == true;
+    var listName = User.IsSupervisor() ? "All requests" : User.IsStaff() ? "My jobs" : "My requests";
+    var roleTag = User.IsSupervisor() ? "Supervisor" : User.IsStaff() ? "Staff" : null;
+}
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - CivicConnect</title>
-    <link rel="stylesheet" href="~/css/site.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
 </head>
 <body>
 <header class="topbar">
-    <a class="brand" asp-controller="Home" asp-action="Index">CivicConnect</a>
-    <nav>
-        <a asp-controller="Requests" asp-action="Index">Requests</a>
-        @if (User.Identity?.IsAuthenticated == true)
-        {
-            <a asp-controller="Requests" asp-action="Create">Submit Request</a>
-            <form asp-controller="Account" asp-action="Logout" method="post" class="inline-form">
-                <button type="submit" class="link-button">Logout (@User.Identity.Name)</button>
-            </form>
-        }
-        else
-        {
-            <a asp-controller="Account" asp-action="Login">Login</a>
-        }
-    </nav>
+    <div class="topbar-inner">
+        <a class="brand" asp-controller="Home" asp-action="Index">CivicConnect</a>
+        <nav class="nav" aria-label="Main">
+            @if (signedIn)
+            {
+                <a asp-controller="Requests" asp-action="Create" aria-current="@Current("create")">Report a problem</a>
+                <a asp-controller="Requests" asp-action="Index" aria-current="@Current("requests")">@listName</a>
+                if (User.IsSupervisor())
+                {
+                    <a asp-controller="Requests" asp-action="Map" aria-current="@Current("map")">Map</a>
+                    <a asp-controller="People" asp-action="Index" aria-current="@Current("people")">People</a>
+                }
+            }
+        </nav>
+        <div class="account">
+            @if (signedIn)
+            {
+                @await Component.InvokeAsync("UpdatesLink", new { current = nav == "updates" })
+                <a class="me" asp-controller="Account" asp-action="Password" title="Change password">@User.DisplayName()</a>@if (roleTag is not null) {<span class="role">@roleTag</span>}
+                <form asp-controller="Account" asp-action="Logout" method="post">
+                    <button type="submit" class="link-button">Sign out</button>
+                </form>
+            }
+            else if (nav != "login")
+            {
+                <a class="signin-link" asp-controller="Account" asp-action="Login">Sign in</a>
+            }
+        </div>
+    </div>
 </header>
 <main class="container">
     @if (TempData["Error"] is string error)
     {
-        <div class="alert error">@error</div>
+        <div class="notice error" role="alert"><p>@error</p></div>
     }
     @if (TempData["Success"] is string success)
     {
-        <div class="alert success">@success</div>
+        <div class="notice success" role="status"><p>@success</p></div>
     }
     @RenderBody()
 </main>
-<footer class="footer">SEN381 CivicConnect — M2 initial development baseline</footer>
+<footer class="site-foot">
+    <span>CivicConnect</span>
+    <span>@AppInfo.EnvironmentName</span>
+    <span>@AppInfo.Version</span>
+</footer>
 </body>
 </html>

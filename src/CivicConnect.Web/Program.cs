@@ -1,72 +1,111 @@
+using CivicConnect.Web;
 using CivicConnect.Web.Application.Interfaces;
 using CivicConnect.Web.Application.Services;
-using CivicConnect.Web.Infrastructure.Repositories;
 using CivicConnect.Web.Data;
-using CivicConnect.Web.Domain.Entities;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.HttpOverrides;
+using MongoDB.Bson;
+using MongoDB.Driver;
 
 var builder = WebApplication.CreateBuilder(args);
 
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-if (string.IsNullOrWhiteSpace(connectionString))
-    throw new InvalidOperationException("Set ConnectionStrings:DefaultConnection using user secrets or an environment variable.");
-
-builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseNpgsql(connectionString));
-
-builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
-{
-    options.SignIn.RequireConfirmedAccount = false;
-    options.Password.RequiredLength = 8;
-    options.Password.RequireDigit = true;
-    options.Password.RequireNonAlphanumeric = false;
-    options.User.RequireUniqueEmail = true;
-    options.Lockout.MaxFailedAccessAttempts = 5;
-})
-.AddEntityFrameworkStores<ApplicationDbContext>()
-.AddDefaultTokenProviders();
-
-builder.Services.ConfigureApplicationCookie(options =>
-{
-    options.LoginPath = "/Account/Login";
-    options.AccessDeniedPath = "/Account/AccessDenied";
-});
-
-builder.Services.AddControllersWithViews();
-builder.Services.AddRazorPages();
-
-builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
-builder.Services.AddScoped<IRequestRepository, RequestRepository>();
-builder.Services.AddScoped<IAuditWriter, AuditWriter>();
-builder.Services.AddScoped<IFeedbackService, FeedbackService>();
+builder.Services.AddSingleton<MongoContext>();
+builder.Services.AddSingleton<DatabaseStatus>();
+builder.Services.AddScoped<IRequestStore, MongoRequestStore>();
+builder.Services.AddScoped<MongoUserDirectory>();
+builder.Services.AddScoped<IUserDirectory>(services => services.GetRequiredService<MongoUserDirectory>());
 builder.Services.AddScoped<IStatusTransitionPolicy, StatusTransitionPolicy>();
 builder.Services.AddScoped<IRequestService, RequestService>();
 
-var app = builder.Build();
+builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie(options =>
+    {
+        options.LoginPath = "/Account/Login";
+        options.AccessDeniedPath = "/Account/AccessDenied";
+        options.Cookie.HttpOnly = true;
+        options.Cookie.SameSite = SameSiteMode.Lax;
+    });
+builder.Services.AddAuthorization();
 
-if (!app.Environment.IsDevelopment())
+builder.Services.AddControllersWithViews();
+
+// Render (and any other HTTPS proxy) talks to the app over HTTP and sends X-Forwarded-Proto.
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    options.KnownIPNetworks.Clear();
+    options.KnownProxies.Clear();
+});
+
+var app = builder.Build();
+AppInfo.EnvironmentName = app.Environment.EnvironmentName;
+
+app.UseForwardedHeaders();
+
+if (app.Environment.IsProduction())
 {
     app.UseExceptionHandler("/Home/Error");
     app.UseHsts();
+    app.UseHttpsRedirection();
 }
 
-app.UseHttpsRedirection();
+app.UseStatusCodePagesWithReExecute("/Home/Error", "?code={0}");
 app.UseStaticFiles();
+app.Use(DatabaseGuard.InvokeAsync);
 app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
 
+app.MapGet("/health", async (MongoContext mongo, DatabaseStatus database, CancellationToken cancellationToken) =>
+{
+    var body = new Dictionary<string, string?>
+    {
+        ["status"] = database.Ready ? "ok" : "unavailable",
+        ["version"] = AppInfo.Version,
+        ["environment"] = AppInfo.EnvironmentName
+    };
+
+    if (!database.Ready)
+    {
+        body["error"] = database.Error;
+        return Results.Json(body, statusCode: StatusCodes.Status503ServiceUnavailable);
+    }
+
+    try
+    {
+        await mongo.Database.RunCommandAsync<BsonDocument>(new BsonDocument("ping", 1), cancellationToken: cancellationToken);
+        return Results.Json(body);
+    }
+    catch (MongoException)
+    {
+        body["status"] = "unavailable";
+        body["error"] = "The database did not respond.";
+        return Results.Json(body, statusCode: StatusCodes.Status503ServiceUnavailable);
+    }
+});
+
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
-app.MapRazorPages();
 
-if (app.Environment.IsDevelopment())
+using (var scope = app.Services.CreateScope())
 {
-    using var scope = app.Services.CreateScope();
-    var services = scope.ServiceProvider;
-    await DbSeeder.SeedAsync(services, app.Configuration);
+    if (args is ["import-accounts", var accountsFile, ..])
+        return await AccountImport.RunAsync(scope.ServiceProvider, accountsFile, Console.Out);
+
+    var database = scope.ServiceProvider.GetRequiredService<DatabaseStatus>();
+    try
+    {
+        await DatabaseSetup.RunAsync(scope.ServiceProvider);
+        database.Ready = true;
+    }
+    catch (Exception ex)
+    {
+        database.Ready = false;
+        database.Error = "CivicConnect could not reach the database. Check the connection string and that MongoDB is available.";
+        Console.Error.WriteLine($"Database setup failed: {ex}");
+    }
 }
 
 app.Run();
+return 0;

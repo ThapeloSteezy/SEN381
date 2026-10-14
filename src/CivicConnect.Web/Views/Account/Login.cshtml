@@ -1,20 +1,32 @@
 @model CivicConnect.Web.Controllers.LoginViewModel
 @{
-    ViewData["Title"] = "Login";
+    ViewData["Title"] = "Sign in";
+    ViewData["Nav"] = "login";
 }
-<h1>Login</h1>
-<form asp-action="Login" method="post" class="card form-card">
-    <input type="hidden" asp-for="ReturnUrl" />
-    <div asp-validation-summary="ModelOnly" class="validation"></div>
-    <label asp-for="Email"></label>
-    <input asp-for="Email" autocomplete="username" />
-    <span asp-validation-for="Email" class="validation"></span>
-
-    <label asp-for="Password"></label>
-    <input asp-for="Password" autocomplete="current-password" />
-    <span asp-validation-for="Password" class="validation"></span>
-
-    <label class="checkbox"><input asp-for="RememberMe" /> Remember me</label>
-    <button class="button" type="submit">Login</button>
-</form>
-<p class="muted">M2 local demo accounts are documented in the README. Do not reuse demo passwords outside local development.</p>
+<div class="signin">
+    <form asp-action="Login" method="post" class="panel panel-body form" novalidate>
+        <div>
+            <h1>Sign in</h1>
+            <p class="lead">Type your email and password.</p>
+        </div>
+        <input type="hidden" asp-for="ReturnUrl" />
+        @if (ViewData.ModelState[string.Empty]?.Errors.Count > 0)
+        {
+            <div class="notice error" role="alert">
+                <p>@ViewData.ModelState[string.Empty]!.Errors[0].ErrorMessage</p>
+            </div>
+        }
+        <div class="field">
+            <label asp-for="Email">Email</label>
+            <input asp-for="Email" type="email" autocomplete="username" />
+            <span asp-validation-for="Email"></span>
+        </div>
+        <div class="field">
+            <label asp-for="Password">Password</label>
+            <input asp-for="Password" autocomplete="current-password" />
+            <span asp-validation-for="Password"></span>
+        </div>
+        <label class="checkbox"><input asp-for="RememberMe" /> Remember me</label>
+        <button class="button huge" type="submit">Sign in</button>
+    </form>
+</div>

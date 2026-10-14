@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: civicconnect
+    runtime: docker
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - key: APP_VERSION
+        sync: false
+      - key: ConnectionStrings__MongoDb
+        sync: false

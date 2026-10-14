@@ -1,36 +1,145 @@
-@model IReadOnlyList<ServiceRequest>
+@model CivicConnect.Web.Controllers.RequestListViewModel
 @{
-    ViewData["Title"] = "Requests";
+    var supervisor = User.IsSupervisor();
+    var staff = User.IsStaff();
+    ViewData["Title"] = supervisor ? "All requests" : staff ? "My jobs" : "My requests";
+    ViewData["Nav"] = "requests";
+    var filtered = Model.Status is not null || Model.Query.Length > 0;
+    var filterCaption = Model.Status?.Label() ?? "Search results";
+
+    IEnumerable<ServiceRequest> Sort(IEnumerable<ServiceRequest> items) => supervisor
+        ? items.OrderBy(r => r.Status).ThenByDescending(r => r.Priority).ThenBy(r => r.CreatedAtUtc)
+        : items.OrderByDescending(r => r.CreatedAtUtc);
+
+    var open = Sort(Model.Shown.Where(r => r.Status.IsOpen())).ToList();
+    var finished = Model.Shown.Where(r => !r.Status.IsOpen()).OrderByDescending(r => r.UpdatedAtUtc).ToList();
+    ViewDataDictionary TableData(string caption) => new(ViewData) { ["Caption"] = caption };
 }
-<div class="page-header">
-    <div>
-        <p class="eyebrow">Controlled request lifecycle</p>
-        <h1>Requests</h1>
-    </div>
-    <a class="button" asp-action="Create">Submit request</a>
+<div class="page-head">
+    <h1>@ViewData["Title"]</h1>
+    <a class="button large" asp-action="Create"><partial name="_Icon" model='"plus"' /> Report a problem</a>
 </div>
-@if (!Model.Any())
+
+@if (!Model.All.Any())
 {
-    <div class="card"><p>No requests are available for your current role.</p></div>
+    <div class="panel empty">
+        <h2>@(supervisor ? "No requests yet" : staff ? "No jobs for you yet" : "You have no requests yet")</h2>
+        @if (!supervisor && !staff)
+        {
+            <p>When something is broken or lost, tell us here.</p>
+            <a class="button huge" asp-action="Create">Report a problem</a>
+        }
+    </div>
+}
+else if (staff)
+{
+    var jobs = open.Where(r => r.AssignedToId == Model.UserId).OrderByDescending(r => r.Priority).ThenBy(r => r.CreatedAtUtc).ToList();
+    var doneJobs = finished.Where(r => r.AssignedToId == Model.UserId).ToList();
+    var reported = Model.Shown.Where(r => r.SubmittedById == Model.UserId && r.AssignedToId != Model.UserId).OrderByDescending(r => r.CreatedAtUtc).ToList();
+    <section class="section">
+        <h2 class="section-title">To do (@jobs.Count)</h2>
+        @if (jobs.Count == 0)
+        {
+            <div class="panel empty"><p>No jobs for you right now.</p></div>
+        }
+        else
+        {
+            <partial name="_RequestCards" model="jobs" />
+        }
+    </section>
+    @if (doneJobs.Count > 0)
+    {
+        <section class="section">
+            <h2 class="section-title">Done</h2>
+            <partial name="_RequestCards" model="doneJobs" />
+        </section>
+    }
+    @if (reported.Count > 0)
+    {
+        <section class="section">
+            <h2 class="section-title">Problems you reported</h2>
+            <partial name="_RequestCards" model="reported" />
+        </section>
+    }
+}
+else if (!supervisor)
+{
+    @if (open.Count > 0)
+    {
+        <section class="section">
+            <h2 class="section-title">Still open</h2>
+            <partial name="_RequestCards" model="open" />
+        </section>
+    }
+    @if (finished.Count > 0)
+    {
+        <section class="section">
+            <h2 class="section-title">Done</h2>
+            <partial name="_RequestCards" model="finished" />
+        </section>
+    }
 }
 else
 {
-    <div class="table-wrap card">
-        <table>
-            <thead><tr><th>Request</th><th>Category</th><th>Status</th><th>Priority</th><th>Created</th><th></th></tr></thead>
-            <tbody>
-            @foreach (var request in Model)
+    <div class="toolbar">
+        <nav class="filters" aria-label="Filter by status">
+            <a class="chip" asp-action="Index" asp-route-q="@Model.Query" aria-current="@(Model.Status is null ? "true" : null)">All <span class="n">@Model.All.Count</span></a>
+            @foreach (var s in RequestStatusText.Lifecycle)
             {
-                <tr>
-                    <td><strong>@request.RequestNumber</strong><br />@request.Title</td>
-                    <td>@request.Category?.Name</td>
-                    <td><span class="status">@request.Status</span></td>
-                    <td>@request.Priority</td>
-                    <td>@request.CreatedAtUtc.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</td>
-                    <td><a asp-action="Details" asp-route-id="@request.Id">Open</a></td>
-                </tr>
+                <a class="chip" asp-action="Index" asp-route-status="@s" asp-route-q="@Model.Query" aria-current="@(Model.Status == s ? "true" : null)">@s.Label() <span class="n">@Model.All.Count(r => r.Status == s)</span></a>
             }
-            </tbody>
-        </table>
+        </nav>
+        <form class="search" method="get" asp-action="Index" role="search">
+            @if (Model.Status is not null)
+            {
+                <input type="hidden" name="status" value="@Model.Status" />
+            }
+            <label for="q" class="visually-hidden">Search</label>
+            <input type="search" id="q" name="q" value="@Model.Query" placeholder="Search" />
+            <button class="button quiet" type="submit">Search</button>
+        </form>
     </div>
+
+    @if (filtered)
+    {
+        @if (Model.Shown.Count == 0)
+        {
+            <div class="panel empty">
+                <h2>Nothing found</h2>
+                <p><a asp-action="Index">Show all requests</a></p>
+            </div>
+        }
+        else
+        {
+            <div class="panel">
+                <partial name="_RequestTable" model="Sort(Model.Shown).ToList()" view-data="TableData(filterCaption)" />
+            </div>
+        }
+    }
+    else
+    {
+        <section class="section">
+            <h2 class="section-title">Open (@open.Count)</h2>
+            @if (open.Count == 0)
+            {
+                <div class="panel empty"><p>Nothing open.</p></div>
+            }
+            else
+            {
+                <div class="panel">
+                    <partial name="_RequestTable" model="open" view-data='TableData("Open requests")' />
+                </div>
+            }
+        </section>
+
+        @if (finished.Count > 0)
+        {
+            <section class="section">
+                <h2 class="section-title">Done (@finished.Count)</h2>
+                <div class="panel">
+                    <partial name="_RequestTable" model="finished" view-data='TableData("Done")' />
+                </div>
+            </section>
+        }
+    }
 }
